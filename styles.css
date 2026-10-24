@@ -1,0 +1,295 @@
+:root {
+  color-scheme: dark;
+  --bg: #07071e;
+  --bg-gradient: radial-gradient(circle at 50% -20%, #322d75 0%, #101035 50%, #060618 90%);
+  --card-bg: rgba(20, 20, 58, 0.7);
+  --card-border: rgba(93, 91, 155, 0.35);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --line: rgba(255, 255, 255, 0.08);
+  
+  --text-main: #fbf8ff;
+  --text-muted: #9e97c9;
+  --accent-lavender: #f4daf6;
+  --accent-violet: #6c69c9;
+  
+  --green: #4ade80;
+  --red: #f87171;
+  --orange: #fb923c;
+  
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  padding: env(safe-area-inset-top) 14px calc(90px + env(safe-area-inset-bottom));
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.app-container {
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* Vistas SPA */
+.app-view { display: none; }
+.app-view.active { display: block; animation: fadeIn 0.25s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Encabezado */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 12px;
+}
+
+.user-profile { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  color: #fff;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+}
+
+.user-info .greeting { font-size: 0.75rem; color: var(--text-muted); display: block; }
+.user-info h1 { font-size: 1.25rem; font-weight: 800; line-height: 1.2; }
+
+.header-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(10, 10, 35, 0.6);
+  border: 1px solid var(--card-border);
+  padding: 6px 12px;
+  border-radius: 99px;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+/* Navegador Catorcenal */
+.cycle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 15, 45, 0.8);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 8px 12px;
+  margin: 12px 0 18px;
+  backdrop-filter: blur(16px);
+}
+
+.cycle-nav-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--text-main);
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.cycle-nav-btn:active { background: var(--accent-violet); }
+
+.cycle-details { text-align: center; }
+.cycle-tag { display: block; font-size: 0.68rem; font-weight: 800; color: var(--accent-lavender); letter-spacing: 0.08em; }
+.cycle-date { font-size: 0.88rem; font-weight: 700; }
+
+/* TARJETA DE DÉBITO VIRTUAL */
+.bank-card-container { perspective: 1000px; margin-bottom: 18px; }
+.bank-card {
+  background: linear-gradient(135deg, #1f1d47 0%, #0d0c2b 60%, #15133c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+.bank-card::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -30%;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-chip {
+  width: 38px; height: 28px;
+  background: linear-gradient(135deg, #fcd34d, #d97706);
+  border-radius: 6px;
+  position: relative;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+}
+
+.card-balance-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+.card-balance { font-size: 2.1rem; font-weight: 800; margin: 4px 0 20px; color: #fff; }
+
+.card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+.card-bottom .label { display: block; font-size: 0.62rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.08em; }
+.card-bottom .val { font-size: 0.88rem; font-weight: 700; letter-spacing: 0.05em; }
+
+/* Tarjetas Base (Glassmorphism) */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-top: 1px solid var(--glass-highlight);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.card-header h2 { font-size: 1.05rem; font-weight: 700; }
+
+.sub-badge { font-size: 0.75rem; font-weight: 700; color: var(--green); background: rgba(74, 222, 128, 0.12); padding: 4px 10px; border-radius: 99px; }
+.pill-info { font-size: 0.72rem; color: var(--accent-lavender); background: rgba(108, 105, 201, 0.25); padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.08); }
+
+/* Barra de Salud */
+.health-bar-bg { height: 7px; background: rgba(0,0,0,0.4); border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+.health-bar-fill { height: 100%; width: 0%; background: var(--green); transition: width 0.4s ease; }
+
+/* Métrica Grid */
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric-item { display: flex; align-items: center; gap: 10px; background: rgba(10, 10, 30, 0.4); padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); }
+.metric-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.metric-icon.inc { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+.metric-icon.plan { background: rgba(244, 218, 246, 0.15); color: var(--accent-lavender); }
+.metric-icon.exp { background: rgba(248, 113, 113, 0.15); color: var(--red); }
+.metric-icon.res { background: rgba(251, 146, 60, 0.15); color: var(--orange); }
+
+.metric-item small { display: block; font-size: 0.72rem; color: var(--text-muted); }
+.metric-item strong { font-size: 1.05rem; font-weight: 700; }
+.positive { color: var(--green); }
+.negative { color: var(--red); }
+
+/* Lista de Pagos Previstos */
+.payments-list { display: flex; flex-direction: column; gap: 10px; }
+.pay-item { padding: 12px; background: rgba(10, 10, 30, 0.4); border-radius: 14px; border: 1px solid var(--line); }
+.pay-item.is-paid { opacity: 0.6; }
+.pay-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pay-name { font-weight: 700; font-size: 0.92rem; }
+
+/* Inputs y Form</h3> */
+label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin: 10px 0 4px; }
+input, select {
+  width: 100%;
+  min-height: 44px;
+  background: rgba(8, 8, 28, 0.8);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+}
+input:focus, select:focus { border-color: var(--accent-violet); }
+
+.btn {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn:active { opacity: 0.85; }
+.btn-primary { background: linear-gradient(120deg, #f4daf6, #bc92c0); color: #1a0f30; }
+.btn-secondary { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--card-border); }
+
+/* Grid para Formularios en Desktop */
+.quick-actions-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media(min-width: 580px) {
+  .quick-actions-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Historial */
+.search-filter-box { margin-bottom: 14px; }
+.search-input { margin-bottom: 10px; }
+.filter-pills { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.filter-pill {
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 99px;
+  background: rgba(10, 10, 30, 0.5);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filter-pill.active { background: var(--accent-violet); color: #fff; border-color: var(--accent-violet); }
+
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-card {
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(10, 10, 30, 0.4);
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.empty-state { text-align: center; color: var(--text-muted); padding: 24px 0; font-size: 0.85rem; }
+.app-footer { text-align: center; font-size: 0.75rem; color: var(--text-muted); padding: 12px 0 24px; }
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(10, 10, 30, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.nav-item {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+.nav-item.active { color: var(--accent-lavender); background: rgba(255, 255, 255, 0.06); }
