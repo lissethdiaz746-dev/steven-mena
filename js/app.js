@@ -1,11 +1,14 @@
 (() => {
   const STORAGE_KEY = 'stevenPay_v2_data';
 
-  // FECHA ANCLA EXACTA: Viernes 30 de Octubre
+  // FECHA ANCLA EXACTA: Viernes 30 de Octubre 2026
   const ANCHOR_DATE = new Date(2026, 9, 30);
 
   const moneyFormat = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
-  const getTodayString = () => new Date().toISOString().split('T')[0];
+  const getTodayString = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   const sanitize = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // Lista inmutable de Pagos Fijos
@@ -47,21 +50,31 @@
 
   function loadData() {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (saved && Array.isArray(saved.transactions)) {
-        state.transactions = saved.transactions;
-        state.paymentStates = saved.paymentStates || {};
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('panelStevenMenaIphone_v2');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const data = saved.state || saved;
+        if (data) {
+          state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
+          state.paymentStates = (typeof data.paymentStates === 'object' && data.paymentStates !== null) ? data.paymentStates : {};
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Iniciando almacenamiento limpio...");
+    }
   }
 
   function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch(e){}
     renderApp();
   }
 
   function renderPayments(cycleId) {
     const container = document.getElementById('paymentsList');
+    if (!container) return;
+
     const cycleStatus = state.paymentStates[cycleId] || {};
 
     container.innerHTML = DEFAULT_PAYMENTS.map(p => {
@@ -121,9 +134,11 @@
       list = list.filter(t => (t.name && t.name.toLowerCase().includes(q)) || (t.note && t.note.toLowerCase().includes(q)));
     }
 
-    list.sort((a, b) => b.id - a.id);
+    list.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
 
     const container = document.getElementById('historyList');
+    if (!container) return;
+
     container.innerHTML = list.map(t => {
       const isInc = t.type === 'ingreso';
       const colorClass = isInc ? 'positive' : (t.type === 'gasto' ? 'negative' : '');
@@ -146,167 +161,213 @@
     container.querySelectorAll('[data-del]').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!confirm('¿Eliminar registro?')) return;
-        state.transactions = state.transactions.filter(t => t.id !== btn.dataset.del);
+        state.transactions = state.transactions.filter(t => String(t.id) !== String(btn.dataset.del));
         saveData();
       });
     });
 
-    document.getElementById('historyCount').textContent = `${list.length} registros`;
-    document.getElementById('historyEmpty').style.display = list.length ? 'none' : 'block';
+    const countEl = document.getElementById('historyCount');
+    if (countEl) countEl.textContent = `${list.length} registros`;
+
+    const emptyEl = document.getElementById('historyEmpty');
+    if (emptyEl) emptyEl.style.display = list.length ? 'none' : 'block';
   }
 
   function renderApp() {
     const cycle = getCycleDetails(state.cycleOffset);
 
-    document.getElementById('cycleLabel').textContent = cycle.label;
-    document.getElementById('cycleDates').textContent = cycle.rangeText;
+    const labelEl = document.getElementById('cycleLabel');
+    const datesEl = document.getElementById('cycleDates');
+    if (labelEl) labelEl.textContent = cycle.label;
+    if (datesEl) datesEl.textContent = cycle.rangeText;
 
-    // --- CÁLCULO DE SALDO ACUMULADO GLOBAL (TODAS LAS CATORCENAS) ---
+    // --- CÁLCULO DE SALDO ACUMULADO GLOBAL ---
     const totalGlobalIncome = state.transactions
       .filter(t => t.type === 'ingreso')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
     const totalGlobalExpenses = state.transactions
       .filter(t => t.type === 'gasto')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-    // Suma de todos los pagos fijos marcados como 'pagado' en todos los ciclos
     let totalGlobalPaidPayments = 0;
     Object.keys(state.paymentStates).forEach(cId => {
       const cStatus = state.paymentStates[cId];
-      DEFAULT_PAYMENTS.forEach(p => {
-        if (cStatus[p.id] === 'pagado') {
-          totalGlobalPaidPayments += Number(p.amount);
-        }
-      });
+      if (cStatus) {
+        DEFAULT_PAYMENTS.forEach(p => {
+          if (cStatus[p.id] === 'pagado') {
+            totalGlobalPaidPayments += Number(p.amount);
+          }
+        });
+      }
     });
 
-    // Saldo Global Real acumulado de dinero ahorrado
     const globalAccumulatedBalance = totalGlobalIncome - totalGlobalExpenses - totalGlobalPaidPayments;
-    document.getElementById('totalAccumulatedBalance').textContent = moneyFormat(globalAccumulatedBalance);
+    const accBalEl = document.getElementById('totalAccumulatedBalance');
+    if (accBalEl) accBalEl.textContent = moneyFormat(globalAccumulatedBalance);
 
-    // --- CÁLCULOS ESPECÍFICOS DE LA CATORCENA SELECCIONADA ---
+    // --- CÁLCULOS DEL CICLO CATORCENAL ACTUAL ---
     const cycleTx = state.transactions.filter(t => t.cycleId === cycle.cycleId);
-    const income = cycleTx.filter(t => t.type === 'ingreso').reduce((s, t) => s + Number(t.amount), 0);
-    const extras = cycleTx.filter(t => t.type === 'gasto').reduce((s, t) => s + Number(t.amount), 0);
+    const income = cycleTx.filter(t => t.type === 'ingreso').reduce((s, t) => s + Number(t.amount || 0), 0);
+    const extras = cycleTx.filter(t => t.type === 'gasto').reduce((s, t) => s + Number(t.amount || 0), 0);
 
     const cycleStatus = state.paymentStates[cycle.cycleId] || {};
     const paid = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] === 'pagado').reduce((s, p) => s + Number(p.amount), 0);
     const reserved = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] !== 'pagado').reduce((s, p) => s + Number(p.amount), 0);
     const totalPlanned = DEFAULT_PAYMENTS.reduce((s, p) => s + Number(p.amount), 0);
 
-    document.getElementById('incomeTotal').textContent = moneyFormat(income);
-    document.getElementById('plannedTotal').textContent = moneyFormat(totalPlanned);
-    document.getElementById('extraTotal').textContent = moneyFormat(extras);
-    document.getElementById('reservedTotal').textContent = moneyFormat(reserved);
+    const incEl = document.getElementById('incomeTotal');
+    const planEl = document.getElementById('plannedTotal');
+    const extEl = document.getElementById('extraTotal');
+    const resEl = document.getElementById('reservedTotal');
+
+    if (incEl) incEl.textContent = moneyFormat(income);
+    if (planEl) planEl.textContent = moneyFormat(totalPlanned);
+    if (extEl) extEl.textContent = moneyFormat(extras);
+    if (resEl) resEl.textContent = moneyFormat(reserved);
 
     const spent = paid + extras + reserved;
     let pct = income > 0 ? Math.min(100, Math.round((spent / income) * 100)) : 0;
     const bar = document.getElementById('healthBar');
-    bar.style.width = `${pct}%`;
-    bar.style.backgroundColor = pct > 90 ? 'var(--red)' : (pct > 70 ? 'var(--orange)' : 'var(--green)');
+    if (bar) {
+      bar.style.width = `${pct}%`;
+      bar.style.backgroundColor = pct > 90 ? 'var(--red)' : (pct > 70 ? 'var(--orange)' : 'var(--green)');
+    }
 
     renderPayments(cycle.cycleId);
     renderHistory();
   }
 
-  // Eventos
-  document.getElementById('incomeDate').value = getTodayString();
-  document.getElementById('expenseDate').value = getTodayString();
+  // Inicialización de Eventos al Cargar el DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    loadData();
 
-  document.getElementById('prevCycleBtn').addEventListener('click', () => { state.cycleOffset--; saveData(); });
-  document.getElementById('nextCycleBtn').addEventListener('click', () => { state.cycleOffset++; saveData(); });
+    const incDateInput = document.getElementById('incomeDate');
+    const expDateInput = document.getElementById('expenseDate');
+    if (incDateInput) incDateInput.value = getTodayString();
+    if (expDateInput) expDateInput.value = getTodayString();
 
-  document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
-      document.querySelectorAll('.bottom-nav .nav-item').forEach(b => b.classList.remove('active'));
+    const prevBtn = document.getElementById('prevCycleBtn');
+    const nextBtn = document.getElementById('nextCycleBtn');
+    if (prevBtn) prevBtn.addEventListener('click', () => { state.cycleOffset--; saveData(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { state.cycleOffset++; saveData(); });
 
-      document.getElementById(btn.dataset.target).classList.add('active');
-      btn.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  });
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.bottom-nav .nav-item').forEach(b => b.classList.remove('active'));
 
-  document.getElementById('incomeForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const amount = Number(document.getElementById('incomeAmount').value);
-    if (!(amount > 0)) return;
-
-    const cycle = getCycleDetails(state.cycleOffset);
-    state.transactions.push({
-      id: String(Date.now()),
-      type: 'ingreso',
-      date: document.getElementById('incomeDate').value,
-      amount,
-      cycleId: cycle.cycleId,
-      note: document.getElementById('incomeNote').value.trim()
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.add('active');
+        btn.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
     });
 
-    document.getElementById('incomeAmount').value = '';
-    document.getElementById('incomeNote').value = '';
-    saveData();
-  });
+    const incForm = document.getElementById('incomeForm');
+    if (incForm) {
+      incForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const amountEl = document.getElementById('incomeAmount');
+        const noteEl = document.getElementById('incomeNote');
+        const amount = Number(amountEl.value);
+        if (!(amount > 0)) return;
 
-  document.getElementById('expenseForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const amount = Number(document.getElementById('expenseAmount').value);
-    const name = document.getElementById('expenseName').value.trim();
-    const cat = document.getElementById('expenseCategory').value;
-    if (!(amount > 0) || !name) return;
+        const cycle = getCycleDetails(state.cycleOffset);
+        state.transactions.push({
+          id: String(Date.now()),
+          type: 'ingreso',
+          date: incDateInput.value || getTodayString(),
+          amount,
+          cycleId: cycle.cycleId,
+          note: noteEl ? noteEl.value.trim() : ''
+        });
 
-    const cycle = getCycleDetails(state.cycleOffset);
-    state.transactions.push({
-      id: String(Date.now()),
-      type: 'gasto',
-      date: document.getElementById('expenseDate').value,
-      name: `${cat} · ${name}`,
-      amount,
-      cycleId: cycle.cycleId
-    });
-
-    document.getElementById('expenseAmount').value = '';
-    document.getElementById('expenseName').value = '';
-    saveData();
-  });
-
-  document.querySelectorAll('#filterTabs .filter-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filterTabs .filter-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.dataset.filter;
-      renderHistory();
-    });
-  });
-
-  document.getElementById('historySearch').addEventListener('input', e => {
-    searchQuery = e.target.value;
-    renderHistory();
-  });
-
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ format: 'stevenPay-v2.1', state }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `respaldo-stevenpay-${getTodayString()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-
-  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
-  document.getElementById('importFile').addEventListener('change', async e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    try {
-      const obj = JSON.parse(await f.text());
-      if (!Array.isArray(obj.state?.transactions)) throw Error();
-      state = obj.state;
-      saveData();
-    } catch (err) {
-      alert('Archivo JSON no válido.');
+        if (amountEl) amountEl.value = '';
+        if (noteEl) noteEl.value = '';
+        saveData();
+      });
     }
-  });
 
-  loadData();
-  renderApp();
+    const expForm = document.getElementById('expenseForm');
+    if (expForm) {
+      expForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const amountEl = document.getElementById('expenseAmount');
+        const nameEl = document.getElementById('expenseName');
+        const catEl = document.getElementById('expenseCategory');
+        const amount = Number(amountEl.value);
+        const name = nameEl.value.trim();
+        const cat = catEl ? catEl.value : '';
+
+        if (!(amount > 0) || !name) return;
+
+        const cycle = getCycleDetails(state.cycleOffset);
+        state.transactions.push({
+          id: String(Date.now()),
+          type: 'gasto',
+          date: expDateInput.value || getTodayString(),
+          name: `${cat} · ${name}`,
+          amount,
+          cycleId: cycle.cycleId
+        });
+
+        if (amountEl) amountEl.value = '';
+        if (nameEl) nameEl.value = '';
+        saveData();
+      });
+    }
+
+    document.querySelectorAll('#filterTabs .filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#filterTabs .filter-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        renderHistory();
+      });
+    });
+
+    const searchInput = document.getElementById('historySearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', e => {
+        searchQuery = e.target.value;
+        renderHistory();
+      });
+    }
+
+    const expBtn = document.getElementById('exportBtn');
+    if (expBtn) {
+      expBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify({ format: 'stevenPay-v2.1', state }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `respaldo-stevenpay-${getTodayString()}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    }
+
+    const impBtn = document.getElementById('importBtn');
+    const impFile = document.getElementById('importFile');
+    if (impBtn && impFile) {
+      impBtn.addEventListener('click', () => impFile.click());
+      impFile.addEventListener('change', async e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        try {
+          const obj = JSON.parse(await f.text());
+          const data = obj.state || obj;
+          if (data) {
+            state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
+            state.paymentStates = data.paymentStates || {};
+            saveData();
+          }
+        } catch (err) {
+          alert('Archivo JSON no válido.');
+        }
+      });
+    }
+
+    renderApp();
+  });
 })();
