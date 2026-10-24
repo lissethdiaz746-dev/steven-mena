@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d38">
+<title>Panel financiero de Steven Mena</title>
+<style>
+:root{color-scheme:dark;--bg:#0d0d38;--card:#171744;--line:#39386f;--text:#fbf8ff;--muted:#c4bee5;--lav:#f4daf6;--mauve:#bc92c0;--violet:#5d5b9b;--mid:#333769;--green:#a8f0d2;--red:#ffb4d0}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#5d5b9b 0,#202052 34%,#0d0d38 72%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);padding:env(safe-area-inset-top) 12px calc(90px + env(safe-area-inset-bottom));font-size:16px}
+main{max-width:620px;margin:auto}.top{position:relative;overflow:hidden;padding:24px 20px 22px;border:1px solid #5d5b9b;border-radius:0 0 28px 28px;background:linear-gradient(130deg,#18183fdd,#5d5b9b99),radial-gradient(ellipse at 85% 15%,#bc92c0 0,transparent 38%);box-shadow:0 12px 30px #05051d66}.top:after{content:'🏍️';position:absolute;right:8px;bottom:2px;font-size:5rem;opacity:.28;transform:rotate(-10deg)}.eyebrow{color:var(--lav);font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{font-size:1.8rem;line-height:1.12;margin:9px 0}h2{font-size:1.15rem;margin:0 0 14px}p{color:var(--muted);line-height:1.45}.card{background:linear-gradient(145deg,rgba(35,35,91,.96),rgba(20,20,61,.98));border:1px solid var(--line);border-radius:22px;padding:17px;margin:13px 0;box-shadow:0 10px 26px #05051d55}.hero{background:linear-gradient(120deg,#5d5b9b,#333769 60%,#171744);border-color:#9c8fe1}.hero .metric{background:#0d0d383d;border-color:#b4a4ef66}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{padding:14px;border-radius:16px;background:#0d0d383d;border:1px solid #5d5b9b}.metric small{color:#e3dcf8;display:block;margin-bottom:7px}.metric strong{font-size:1.35rem;overflow-wrap:anywhere}.positive{color:var(--green)}.negative{color:var(--red)}label{display:block;color:var(--muted);font-size:.9rem;margin:10px 0 6px}input,select,button{font:inherit;min-height:46px;border-radius:13px;width:100%}input,select{background:#0d0d38;color:var(--text);border:1px solid #5d5b9b;padding:10px 12px}button{border:0;padding:11px 14px;font-weight:750;cursor:pointer;background:linear-gradient(120deg,#f4daf6,#bc92c0);color:#211641}button.secondary{background:#333769;color:var(--text);border:1px solid #5d5b9b}button.danger{background:#4b263f;color:#ffd9e8;border:1px solid #85416b}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.row span{color:var(--muted)}.pay{padding:12px 0;border-bottom:1px solid var(--line)}.pay:last-child{border-bottom:0}.payname{font-weight:700}.sub{color:var(--muted);font-size:.88rem;margin-top:4px}.pill{display:inline-block;border-radius:999px;padding:5px 9px;background:#5d5b9b;color:#fff0ff;font-size:.78rem}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}td.amount{white-space:nowrap;font-weight:750}.empty{color:var(--muted);padding:12px 0}.small{font-size:.82rem;color:var(--muted)}.status{min-width:130px}.foot{font-size:.82rem;color:var(--muted);padding:8px 4px 20px}.bottomnav{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#11113af2;backdrop-filter:blur(16px);border-top:1px solid #5d5b9b}.bottomnav a{color:#d9cff8;text-decoration:none;text-align:center;font-size:.75rem;padding:7px 2px;border-radius:12px}.bottomnav a span{display:block;font-size:1.25rem;margin-bottom:3px}.bottomnav a:active{background:#5d5b9b}.top p{max-width:78%;color:#e1daf8}
+@media(max-width:430px){body{padding-left:10px;padding-right:10px}.top{padding:22px 17px}.card{padding:14px}.grid{gap:8px}.metric strong{font-size:1.18rem}.actions{grid-template-columns:1fr 1fr}h1{font-size:1.55rem}table{font-size:.78rem}th,td{padding:8px 5px}.tablewrap{margin-right:-4px}.top:after{font-size:3.8rem;right:2px}}
+</style>
+</head>
+<body>
+<main>
+<header class="top" id="top"><div class="eyebrow">Mi espacio financiero</div><h1>Hola, Steven 👋</h1><p>Tu dinero, bajo control.<br>🏍️ Disciplina hoy, libertad mañana.</p></header>
+<section class="card hero"><h2>Dinero disponible · Resumen de tu catorcena</h2>
+<div class="grid">
+<div class="metric"><small>Ingreso registrado</small><strong id="incomeTotal">$0.00</strong></div>
+<div class="metric"><small>Pagos fijos previstos</small><strong id="plannedTotal">$0.00</strong></div>
+<div class="metric"><small>Gastos extra registrados</small><strong id="extraTotal">$0.00</strong></div>
+<div class="metric"><small>Saldo disponible estimado</small><strong id="balance">$0.00</strong></div>
+</div><p class="small" id="balanceNote">El saldo se calcula con el ingreso registrado menos pagos marcados como pagados y gastos extra.</p>
+</section>
+<section class="card" id="ingresos"><h2>＋ Registrar ingreso recibido</h2>
+<form id="incomeForm"><label for="incomeDate">Fecha en que recibiste el dinero</label><input id="incomeDate" type="date" required>
+<label for="incomeAmount">Importe recibido ($)</label><input id="incomeAmount" type="number" min="0.01" step="0.01" placeholder="Ej. 180.00" required>
+<label for="incomeCycle">Catorcena</label><select id="incomeCycle"><option value="1">Primera catorcena</option><option value="2">Segunda catorcena</option></select>
+<label for="incomeNote">Nota (opcional)</label><input id="incomeNote" maxlength="100" placeholder="Ej. salario recibido">
+<button type="submit">Guardar ingreso</button></form>
+</section>
+<section class="card" id="cuentas"><div class="row"><h2>Mis cuentas · Pagos previstos</h2><span class="pill">No transfiere dinero</span></div><p class="small">Marca un pago como pagado solo después de verificarlo en Davivienda o con el proveedor correspondiente.</p><div id="payments"></div><p class="empty" id="paymentsEmpty">No hay pagos previstos para esta catorcena.</p></section>
+<section class="card" id="gastos"><h2>Registrar gasto extra</h2><form id="expenseForm"><label for="expenseDate">Fecha</label><input id="expenseDate" type="date" required>
+<label for="expenseName">Concepto</label><input id="expenseName" maxlength="80" placeholder="Transporte, medicina, etc." required>
+<label for="expenseAmount">Monto ($)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="Ej. 3.50" required>
+<label for="expenseCycle">Catorcena</label><select id="expenseCycle"><option value="1">Primera catorcena</option><option value="2">Segunda catorcena</option></select>
+<button type="submit">Guardar gasto extra</button></form></section>
+<section class="card" id="historial"><div class="row"><h2>◷ Historial de transacciones</h2><span class="pill" id="historyCount">0 movimientos</span></div>
+<p class="small">Ingresos, pagos y gastos ordenados por fecha. El estado registrado aquí es manual y no verifica movimientos del banco.</p>
+<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Movimiento</th><th>Detalle / estado</th><th>Monto</th><th>Acción</th></tr></thead><tbody id="history"></tbody></table></div><div id="historyEmpty" class="empty">Todavía no hay movimientos. Registra tu primer ingreso para comenzar.</div></section>
+<section class="card" id="mas"><h2>Copia de seguridad</h2><p>Exporta tu historial y configuración para guardarlos en un lugar seguro. Los datos se guardan en este navegador de este dispositivo y no se sincronizan automáticamente.</p><div class="actions"><button type="button" id="exportBtn">Exportar respaldo</button><button type="button" class="secondary" id="importBtn">Importar respaldo</button></div><input type="file" id="importFile" accept="application/json,.json" hidden><p class="small">Si borras los datos de Safari o cambias de teléfono, podrías perder la información local. Guarda respaldos regularmente.</p></section>
+<footer class="foot">Privacidad: este archivo guarda datos localmente en el navegador mediante almacenamiento del dispositivo. No introduzcas contraseñas, PIN, códigos de seguridad ni números completos de cuenta. Para confirmar una transferencia, revisa Davivienda directamente.</footer>
+</main>
+<nav class="bottomnav" aria-label="Navegación rápida"><a href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'})"><span>⌂</span>Inicio</a><a href="#cuentas"><span>▣</span>Cuentas</a><a href="#gastos"><span>▤</span>Gastos</a><a href="#mas"><span>•••</span>Más</a></nav>
+<script>
+(() => {
+const KEY='panelStevenMenaIphone_v2';
+const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const defaultPayments=[
+ {id:'salvador',name:'Salvador Morales',category:'Transferencia',amount:37.50,cycle:'ambas',status:'pendiente'},
+ {id:'andrea',name:'Andrea Rivera',category:'Transferencia',amount:37.50,cycle:'ambas',status:'pendiente'},
+ {id:'mayra',name:'Mayra Morales',category:'Transferencia',amount:41.00,cycle:'ambas',status:'pendiente'}
+];
+let state;
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.payments)&&Array.isArray(v.transactions)){v.payments=v.payments.filter(p=>!['recibos','comida'].includes(p.id));return v}}catch(e){}return {payments:defaultPayments.map(p=>({...p})),transactions:[],selectedCycle:'1'};}
+state=load();
+document.getElementById('incomeDate').value=today();document.getElementById('expenseDate').value=today();
+function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function cycleName(c){return c==='1'?'Primera catorcena':'Segunda catorcena'}
+function planned(p){return p.cycle==='ambas'||p.cycle===state.selectedCycle}
+function renderPayments(){
+ const el=document.getElementById('payments');
+ const visiblePayments=state.payments.filter(planned);
+ el.innerHTML=visiblePayments.map(p=>`<div class="pay"><div class="row"><div><div class="payname">${esc(p.name)}</div><div class="sub">${esc(p.category)} · ${money(p.amount)} · ${p.cycle==='ambas'?'Ambas catorcenas':cycleName(p.cycle)}</div></div><span class="pill">${p.status==='pagado'?'Pagado':p.status==='programado'?'Programado en banco':'Pendiente'}</span></div><label for="status-${p.id}">Estado del pago</label><select class="status" id="status-${p.id}" data-payment="${p.id}"><option value="pendiente" ${p.status==='pendiente'?'selected':''}>Pendiente</option><option value="programado" ${p.status==='programado'?'selected':''}>Programado en Davivienda</option><option value="pagado" ${p.status==='pagado'?'selected':''}>Pagado / verificado</option></select><div class="sub">Este estado es un registro manual; no confirma el estado real en el banco.</div></div>`).join('');
+ document.getElementById('paymentsEmpty').style.display=visiblePayments.length?'none':'block';
+ el.querySelectorAll('[data-payment]').forEach(sel=>sel.addEventListener('change',()=>{const p=state.payments.find(x=>x.id===sel.dataset.payment);if(p){p.status=sel.value;state.transactions.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),type:'estado',date:today(),name:p.name,amount:p.amount,cycle:state.selectedCycle,status:sel.value,createdAt:Date.now()});save()}}));
+}
+function render(){
+ const tx=state.transactions.filter(t=>t.cycle===state.selectedCycle);
+ const income=tx.filter(t=>t.type==='ingreso').reduce((s,t)=>s+Number(t.amount),0);
+ const extras=tx.filter(t=>t.type==='gasto').reduce((s,t)=>s+Number(t.amount),0);
+ const relevant=state.payments.filter(planned);
+ const paid=relevant.filter(p=>p.status==='pagado').reduce((s,p)=>s+Number(p.amount),0);
+ const reserved=relevant.filter(p=>p.status!=='pagado').reduce((s,p)=>s+Number(p.amount),0);
+ const totalPlanned=relevant.reduce((s,p)=>s+Number(p.amount),0);
+ const balance=income-paid-extras-reserved;
+ document.getElementById('incomeTotal').textContent=money(income);
+ document.getElementById('plannedTotal').textContent=money(totalPlanned);
+ document.getElementById('extraTotal').textContent=money(extras);
+ const b=document.getElementById('balance');b.textContent=money(balance);b.className=balance<0?'negative':'positive';
+ document.getElementById('balanceNote').textContent=`${cycleName(state.selectedCycle)} · Reservado para pagos pendientes/programados: ${money(reserved)} · Pagos marcados pagados: ${money(paid)}.`;
+ renderPayments();
+ const history=[...state.transactions].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.createdAt||0)-(a.createdAt||0));
+ const tbody=document.getElementById('history');
+ tbody.innerHTML=history.map(t=>{let title=t.type==='ingreso'?'Ingreso recibido':t.type==='gasto'?'Gasto extra':t.type==='estado'?'Actualización de estado':'Movimiento';let detail=t.type==='ingreso'?`${cycleName(t.cycle)}${t.note?' · '+t.note:''}`:t.type==='gasto'?`${esc(t.name)} · ${cycleName(t.cycle)}`:`${esc(t.name||'Pago')} · ${t.status==='pagado'?'Pagado / verificado':t.status==='programado'?'Programado en Davivienda':'Pendiente'}`;let amt=(t.type==='ingreso'?'+':t.type==='gasto'?'-':'')+money(t.amount);return `<tr><td>${esc(t.date)}</td><td>${title}</td><td>${detail}</td><td class="amount">${amt}</td><td><button type="button" class="secondary delete-tx" data-delete-tx="${esc(t.id)}" style="padding:7px 9px;min-height:auto">Eliminar</button></td></tr>`}).join('');
+ tbody.querySelectorAll('[data-delete-tx]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.deleteTx;const item=state.transactions.find(t=>String(t.id)===String(id));if(!item)return;const label=item.type==='ingreso'?'ingreso':item.type==='gasto'?'gasto extra':'actualización de pago';if(!confirm(`¿Eliminar este ${label} del historial? Esta acción no se puede deshacer.`))return;state.transactions=state.transactions.filter(t=>String(t.id)!==String(id));save()}));
+ document.getElementById('historyCount').textContent=`${history.length} ${history.length===1?'movimiento':'movimientos'}`;
+ document.getElementById('historyEmpty').style.display=history.length?'none':'block';
+}
+document.getElementById('incomeCycle').addEventListener('change',e=>{state.selectedCycle=e.target.value;save()});
+document.getElementById('expenseCycle').addEventListener('change',e=>{});
+document.getElementById('incomeForm').addEventListener('submit',e=>{e.preventDefault();const amount=Number(document.getElementById('incomeAmount').value);if(!(amount>0))return;const cycle=document.getElementById('incomeCycle').value;state.selectedCycle=cycle;state.transactions.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),type:'ingreso',date:document.getElementById('incomeDate').value,amount,cycle,note:document.getElementById('incomeNote').value.trim(),createdAt:Date.now()});document.getElementById('incomeAmount').value='';document.getElementById('incomeNote').value='';save()});
+document.getElementById('expenseForm').addEventListener('submit',e=>{e.preventDefault();const amount=Number(document.getElementById('expenseAmount').value);const name=document.getElementById('expenseName').value.trim();if(!(amount>0)||!name)return;const cycle=document.getElementById('expenseCycle').value;state.selectedCycle=cycle;state.transactions.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),type:'gasto',date:document.getElementById('expenseDate').value,amount,cycle,name,createdAt:Date.now()});document.getElementById('expenseAmount').value='';document.getElementById('expenseName').value='';save()});
+document.getElementById('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({format:'mi-panel-financiero-v1',exportedAt:new Date().toISOString(),state},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`respaldo-panel-${today()}.json`;a.click();URL.revokeObjectURL(a.href)});
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());const v=obj.state||obj;if(!Array.isArray(v.payments)||!Array.isArray(v.transactions))throw Error('Formato inválido');if(!confirm('Importar este respaldo reemplazará los datos actuales de este panel. ¿Deseas continuar?'))return;state=v;save();alert('Respaldo importado.')}catch(err){alert('No se pudo importar el archivo. Verifica que sea un respaldo válido de este panel.')}finally{e.target.value=''}});
+render();
+})();
+</script>
+</body></html>
