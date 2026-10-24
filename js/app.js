@@ -2,7 +2,7 @@
   const STORAGE_KEY = 'stevenPay_v2_data';
 
   // FECHA ANCLA EXACTA: Viernes 30 de Octubre
-  const ANCHOR_DATE = new Date(2026, 9, 30); // Mes 9 = Octubre (0-indexed)
+  const ANCHOR_DATE = new Date(2026, 9, 30);
 
   const moneyFormat = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
   const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -24,7 +24,6 @@
   let activeFilter = 'todos';
   let searchQuery = '';
 
-  // Generador inteligente de ciclos de 14 días
   function getCycleDetails(offset = 0) {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - ANCHOR_DATE.getTime()) / (1000 * 3600 * 24));
@@ -162,6 +161,31 @@
     document.getElementById('cycleLabel').textContent = cycle.label;
     document.getElementById('cycleDates').textContent = cycle.rangeText;
 
+    // --- CÁLCULO DE SALDO ACUMULADO GLOBAL (TODAS LAS CATORCENAS) ---
+    const totalGlobalIncome = state.transactions
+      .filter(t => t.type === 'ingreso')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const totalGlobalExpenses = state.transactions
+      .filter(t => t.type === 'gasto')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    // Suma de todos los pagos fijos marcados como 'pagado' en todos los ciclos
+    let totalGlobalPaidPayments = 0;
+    Object.keys(state.paymentStates).forEach(cId => {
+      const cStatus = state.paymentStates[cId];
+      DEFAULT_PAYMENTS.forEach(p => {
+        if (cStatus[p.id] === 'pagado') {
+          totalGlobalPaidPayments += Number(p.amount);
+        }
+      });
+    });
+
+    // Saldo Global Real acumulado de dinero ahorrado
+    const globalAccumulatedBalance = totalGlobalIncome - totalGlobalExpenses - totalGlobalPaidPayments;
+    document.getElementById('totalAccumulatedBalance').textContent = moneyFormat(globalAccumulatedBalance);
+
+    // --- CÁLCULOS ESPECÍFICOS DE LA CATORCENA SELECCIONADA ---
     const cycleTx = state.transactions.filter(t => t.cycleId === cycle.cycleId);
     const income = cycleTx.filter(t => t.type === 'ingreso').reduce((s, t) => s + Number(t.amount), 0);
     const extras = cycleTx.filter(t => t.type === 'gasto').reduce((s, t) => s + Number(t.amount), 0);
@@ -171,9 +195,6 @@
     const reserved = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] !== 'pagado').reduce((s, p) => s + Number(p.amount), 0);
     const totalPlanned = DEFAULT_PAYMENTS.reduce((s, p) => s + Number(p.amount), 0);
 
-    const balance = income - paid - extras - reserved;
-
-    document.getElementById('balance').textContent = moneyFormat(balance);
     document.getElementById('incomeTotal').textContent = moneyFormat(income);
     document.getElementById('plannedTotal').textContent = moneyFormat(totalPlanned);
     document.getElementById('extraTotal').textContent = moneyFormat(extras);
@@ -189,14 +210,13 @@
     renderHistory();
   }
 
-  // Eventos e Inicialización
+  // Eventos
   document.getElementById('incomeDate').value = getTodayString();
   document.getElementById('expenseDate').value = getTodayString();
 
   document.getElementById('prevCycleBtn').addEventListener('click', () => { state.cycleOffset--; saveData(); });
   document.getElementById('nextCycleBtn').addEventListener('click', () => { state.cycleOffset++; saveData(); });
 
-  // SPA Navigation
   document.querySelectorAll('.bottom-nav .nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
@@ -208,7 +228,6 @@
     });
   });
 
-  // Formularios
   document.getElementById('incomeForm').addEventListener('submit', e => {
     e.preventDefault();
     const amount = Number(document.getElementById('incomeAmount').value);
@@ -251,7 +270,6 @@
     saveData();
   });
 
-  // Filtros
   document.querySelectorAll('#filterTabs .filter-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#filterTabs .filter-pill').forEach(b => b.classList.remove('active'));
@@ -266,9 +284,8 @@
     renderHistory();
   });
 
-  // Respaldo
   document.getElementById('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ format: 'stevenPay-v2', state }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ format: 'stevenPay-v2.1', state }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `respaldo-stevenpay-${getTodayString()}.json`;
