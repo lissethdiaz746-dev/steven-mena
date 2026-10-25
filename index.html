@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a26">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Steven Pay">
+  <title>Steven Pay · Banca Privada Personal</title>
+
+  <!-- Fuente de Banca Privada Prémim -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Estilos Separados -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Web App Manifest -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Steven Pay","short_name":"StevenPay","start_url":".","display":"standalone","background_color":"#0a0a26","theme_color":"#0a0a26","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💳</text></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
+</head>
+<body>
+
+<main class="app-container">
+
+  <!-- ENCABEZADO PRINCIPAL ESTILO BANCA -->
+  <header class="app-header">
+    <div class="user-profile">
+      <div class="avatar">SM</div>
+      <div class="user-info">
+        <span class="greeting">Bienvenido de nuevo</span>
+        <h1>Steven Mena 👋</h1>
+      </div>
+    </div>
+    <div class="header-badge">
+      <span class="status-dot"></span>
+      <span id="headerSyncText" style="font-size: 0.75rem; font-weight: 700;">Davivienda</span>
+    </div>
+  </header>
+
+  <!-- NAVEGADOR DE CATORCENA INFINITA -->
+  <div class="cycle-bar">
+    <button class="cycle-nav-btn" id="prevCycleBtn" aria-label="Catorcena anterior">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <div class="cycle-details">
+      <span class="cycle-tag" id="cycleLabel">CATORCENA ACTUAL</span>
+      <span class="cycle-date" id="cycleDates">---</span>
+    </div>
+    <button class="cycle-nav-btn" id="nextCycleBtn" aria-label="Siguiente catorcena">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+  </div>
+
+  <!-- ================= VISTA 1: DASHBOARD (INICIO) ================= -->
+  <section id="view-dashboard" class="app-view active">
+    
+    <!-- TARJETA DE DÉBITO DIGITAL INTERACTIVA -->
+    <div class="bank-card-container">
+      <div class="bank-card">
+        <div class="card-top">
+          <div class="card-chip"></div>
+          <div class="card-brand">
+            <svg width="38" height="24" viewBox="0 0 38 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="#EB001B" fill-opacity="0.85"/>
+              <circle cx="26" cy="12" r="10" fill="#F79E1B" fill-opacity="0.85"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="card-balance-label">Saldo Disponible Estimado</div>
+        <div class="card-balance money" id="balance">$0.00</div>
+        
+        <div class="card-bottom">
+          <div class="card-holder">
+            <span class="label">TITULAR</span>
+            <span class="val">STEVEN MENA</span>
+          </div>
+          <div class="card-number">
+            <span class="label">CUENTA VIRTUAL</span>
+            <span class="val">•••• 4820</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICAS DE SALUD Y RESUMEN CATORCENAL -->
+    <div class="card metrics-card">
+      <div class="card-header">
+        <h2>📊 Resumen Financiero</h2>
+        <span class="sub-badge" id="healthText">Salud Óptima</span>
+      </div>
+
+      <div class="health-bar-bg">
+        <div class="health-bar-fill" id="healthBar"></div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-icon inc">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+          </div>
+          <div>
+            <small>Ingresos</small>
+            <strong id="incomeTotal" class="money positive">$0.00</strong>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon plan">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <div>
+            <small>Pagos Previstos</small>
+            <strong id="plannedTotal" class="money">$0.00</strong>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon exp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+          </div>
+          <div>
+            <small>Gastos Extra</small>
+            <strong id="extraTotal" class="money negative">$0.00</strong>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon res">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <div>
+            <small>Reservado</small>
+            <strong id="reservedTotal" class="money">$0.00</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTADO DE PAGOS PREVISTOS DEL CICLO -->
+    <div class="card">
+      <div class="card-header">
+        <h2>▣ Pagos Fijos de la Catorcena</h2>
+        <span class="pill-info">Davivienda</span>
+      </div>
+      <div id="paymentsList" class="payments-list"></div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS (REGISTROS) -->
+    <div class="quick-actions-grid">
+      <div class="card">
+        <h3>💰 Registrar Ingreso</h3>
+        <form id="incomeForm">
+          <label for="incomeDate">Fecha</label>
+          <input id="incomeDate" type="date" required>
+
+          <label for="incomeAmount">Monto ($)</label>
+          <input id="incomeAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required>
+
+          <label for="incomeNote">Nota (Opcional)</label>
+          <input id="incomeNote" maxlength="80" placeholder="Ej. Depósito Salario">
+
+          <button type="submit" class="btn btn-primary" style="margin-top: 12px;">+ Guardar Ingreso</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>💸 Registrar Gasto Extra</h3>
+        <form id="expenseForm">
+          <label for="expenseDate">Fecha</label>
+          <input id="expenseDate" type="date" required>
+
+          <label for="expenseCategory">Categoría</label>
+          <select id="expenseCategory">
+            <option value="🍔 Comida">🍔 Comida / Restaurantes</option>
+            <option value="⛽ Transporte">⛽ Moto / Combustible</option>
+            <option value="🛒 Supermercado">🛒 Supermercado</option>
+            <option value="💊 Salud">💊 Salud / Medicina</option>
+            <option value="📦 Varios" selected>📦 Varios / Salidas</option>
+          </select>
+
+          <label for="expenseName">Concepto</label>
+          <input id="expenseName" maxlength="80" placeholder="Ej. Repuesto, medicina..." required>
+
+          <label for="expenseAmount">Monto ($)</label>
+          <input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required>
+
+          <button type="submit" class="btn btn-secondary" style="margin-top: 12px;">- Guardar Gasto</button>
+        </form>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================= VISTA 2: HISTORIAL COMPLETO ================= -->
+  <section id="view-history" class="app-view">
+    <div class="card">
+      <div class="card-header">
+        <h2>◷ Historial de Movimientos</h2>
+        <span class="pill-info" id="historyCount">0 registros</span>
+      </div>
+
+      <div class="search-filter-box">
+        <input id="historySearch" class="search-input" placeholder="🔍 Buscar por concepto o nota...">
+        <div class="filter-pills" id="filterTabs">
+          <button type="button" class="filter-pill active" data-filter="todos">Todos</button>
+          <button type="button" class="filter-pill" data-filter="ingreso">Ingresos</button>
+          <button type="button" class="filter-pill" data-filter="gasto">Gastos</button>
+          <button type="button" class="filter-pill" data-filter="estado">Pagos Fijos</button>
+        </div>
+      </div>
+
+      <div class="history-list" id="historyList"></div>
+      <div id="historyEmpty" class="empty-state">No se encontraron movimientos registrados.</div>
+    </div>
+  </section>
+
+  <!-- ================= VISTA 3: AJUSTES, CONEXIÓN Y RESPALDOS ================= -->
+  <section id="view-settings" class="app-view">
+    <div class="card">
+      <div class="card-header">
+        <h2>🔄 Davivienda · Google Sheets</h2>
+        <span class="pill-info">Solo lectura</span>
+      </div>
+      <p class="text-muted" style="font-size:0.82rem; line-height:1.55; margin-bottom:10px;">
+        Steven Pay leerá los movimientos que Make guarda en tu hoja. No modifica la hoja ni guarda la clave de Google en la aplicación.
+      </p>
+
+      <label for="sheetsClientId">Google OAuth Client ID</label>
+      <input id="sheetsClientId" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="...apps.googleusercontent.com">
+
+      <label for="sheetsSpreadsheetId">ID del documento de Google Sheets</label>
+      <input id="sheetsSpreadsheetId" type="text" autocomplete="off" autocapitalize="none" spellcheck="false">
+
+      <label for="sheetsTabName">Nombre exacto de la pestaña</label>
+      <input id="sheetsTabName" type="text" autocomplete="off" value="Hoja 1">
+
+      <button type="button" id="connectSheetsBtn" class="btn btn-primary" style="margin-top:14px;">🔐 Conectar y sincronizar</button>
+      <p id="bankSyncStatus" role="status" aria-live="polite" style="margin-top:12px; font-size:0.8rem; line-height:1.5; color:var(--text-muted);">La conexión aún no está configurada.</p>
+      <p id="bankSyncLastUpdated" style="margin-top:4px; font-size:0.72rem; color:var(--text-muted);"></p>
+    </div>
+
+    <div class="card">
+      <h2>••• Copias de Seguridad</h2>
+      <p class="text-muted" style="font-size:0.82rem; line-height:1.55; margin:8px 0 12px;">Los registros manuales y estados de pagos se mantienen en el almacenamiento local de este dispositivo. Exporta una copia para respaldarlos.</p>
+      <div class="backup-actions">
+        <button type="button" id="exportBtn" class="btn btn-primary">💾 Exportar Respaldo</button>
+        <button type="button" id="importBtn" class="btn btn-secondary">📥 Importar Respaldo</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    Steven Pay · Banca Personal Minimalista v2.0
+  </footer>
+
+</main>
+
+<!-- BARRA DE NAVEGACIÓN INFERIOR ESTILO NATIVE MOBILE -->
+<nav class="bottom-nav">
+  <button type="button" class="nav-item active" data-target="view-dashboard">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    <span>Inicio</span>
+  </button>
+  <button type="button" class="nav-item" data-target="view-history">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    <span>Movimientos</span>
+  </button>
+  <button type="button" class="nav-item" data-target="view-settings">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    <span>Ajustes</span>
+  </button>
+</nav>
+
+<!-- Google Identity Services: OAuth de solo lectura para Google Sheets -->
+<script src="https://accounts.google.com/gsi/client" defer></script>
+<!-- JavaScript de Steven Pay -->
+<script src="js/app.js" defer></script>
+</body>
+</html>
