@@ -197,9 +197,12 @@ body {
 /* Lista de Pagos Previstos */
 .payments-list { display: flex; flex-direction: column; gap: 10px; }
 .pay-item { padding: 12px; background: rgba(10, 10, 30, 0.4); border-radius: 14px; border: 1px solid var(--line); }
-.pay-item.is-paid { opacity: 0.6; }
+.pay-item.is-paid { opacity: 0.92; border-color: rgba(74, 222, 128, 0.22); }
 .pay-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .pay-name { font-weight: 700; font-size: 0.92rem; }
+.payment-auto-status { display: inline-block; max-width: 100%; margin-top: 6px; font-size: 0.7rem; line-height: 1.35; white-space: normal; }
+.automation-card p { overflow-wrap: anywhere; }
+.metric-item strong { overflow-wrap: anywhere; }
 
 /* Inputs y Form</h3> */
 label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin: 10px 0 4px; }
