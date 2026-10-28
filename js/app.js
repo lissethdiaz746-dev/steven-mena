@@ -24,7 +24,7 @@
   let state = { cycleOffset: 0, paymentStates: {}, transactions: [], bankTransactions: [] };
   let activeFilter = 'todos';
   let searchQuery = '';
-  let sheetsConfig = { clientId: '', spreadsheetId: DEFAULT_SPREADSHEET_ID, sheetName: 'Hoja 1', lastSyncAt: '' };
+  let sheetsConfig = { clientId: '', spreadsheetId: DEFAULT_SPREADSHEET_ID, sheetName: 'Hoja 1', lastSyncAt: '', analyticsStartDate: '' };
   let accessToken = null; // Nunca se guarda el token de Google en localStorage.
   let tokenExpiresAt = 0;
   let syncInProgress = false;
@@ -66,7 +66,7 @@
           cycleOffset: Number.isFinite(Number(saved.cycleOffset)) ? Number(saved.cycleOffset) : 0,
           paymentStates: saved.paymentStates || {},
           transactions: saved.transactions,
-          bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : []
+          bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions.map(enrichBankTransaction) : []
         };
       }
     } catch (e) { /* Si el respaldo local no se puede leer, se inicia vacío. */ }
@@ -85,14 +85,40 @@
           clientId: String(saved.clientId || ''),
           spreadsheetId: String(saved.spreadsheetId || DEFAULT_SPREADSHEET_ID),
           sheetName: String(saved.sheetName || 'Hoja 1'),
-          lastSyncAt: String(saved.lastSyncAt || '')
+          lastSyncAt: String(saved.lastSyncAt || ''),
+          // Al actualizar esta versión, los movimientos más antiguos se conservan en el historial,
+          // pero dejan de contaminar los indicadores de la nueva etapa de seguimiento.
+          analyticsStartDate: String(saved.analyticsStartDate || getTodayString())
         };
+      } else {
+        sheetsConfig.analyticsStartDate = getTodayString();
       }
-    } catch (e) { /* Mantener configuración predeterminada. */ }
+    } catch (e) {
+      sheetsConfig.analyticsStartDate = getTodayString();
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sheetsConfig.analyticsStartDate || '')) {
+      sheetsConfig.analyticsStartDate = getTodayString();
+    }
     document.getElementById('sheetsClientId').value = sheetsConfig.clientId;
     document.getElementById('sheetsSpreadsheetId').value = sheetsConfig.spreadsheetId;
     document.getElementById('sheetsTabName').value = sheetsConfig.sheetName;
+    localStorage.setItem(SHEETS_CONFIG_KEY, JSON.stringify(sheetsConfig));
+    updateTrackingStartLabels();
     updateSyncStatusFromCache();
+  }
+
+  function formatISODate(dateISO) {
+    const match = String(dateISO || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : String(dateISO || '');
+  }
+
+  function updateTrackingStartLabels() {
+    const start = sheetsConfig.analyticsStartDate || getTodayString();
+    const message = `Control financiero desde ${formatISODate(start)}. Los movimientos anteriores siguen en el historial, pero no afectan los totales de la catorcena.`;
+    const dashboardLabel = document.getElementById('trackingStartSummary');
+    const settingsLabel = document.getElementById('bankTrackingStart');
+    if (dashboardLabel) dashboardLabel.textContent = message;
+    if (settingsLabel) settingsLabel.textContent = message;
   }
 
   function saveSheetsConfigFromForm() {
@@ -129,33 +155,72 @@
     return [...state.transactions, ...(state.bankTransactions || [])];
   }
 
-  function hasMatchingBankCharge(payment, cycleId) {
-    const target = normalizeText(payment.name);
-    return (state.bankTransactions || []).some(t => {
-      if (t.cycleId !== cycleId || t.type !== 'gasto' || Math.abs(Number(t.amount) - Number(payment.amount)) > 0.01) return false;
-      return normalizeText(t.name).includes(target);
-    });
+  function extractTransferRecipient(concept) {
+    let value = normalizeText(concept).replace(/[.,:;]+/g, ' ').replace(/\s+/g, ' ').trim();
+    value = value.replace(/^(?:(?:app|banca|banco|dv)\s+)?(?:transf(?:erencia)?|transfer(?:encia)?)\.?\s*(?:(?:electronica|bancaria)\s*)?(?:a|para|hacia)?\s*/, '');
+    value = value.replace(/^(?:a|para|hacia)\s+/, '').trim();
+    return value;
+  }
+
+  function classifyBankTransaction(type, category, concept) {
+    if (type === 'ingreso') return 'abono';
+    const text = normalizeText(concept);
+    const cat = normalizeText(category);
+    const textTransferSignal = /\b(transf|transferencia|transfer)\b/.test(text);
+    const textCashSignal = /\b(cajero|atm|retiro|retirar|extraccion|efectivo|cash withdrawal)\b/.test(text);
+    // Si el concepto identifica claramente un retiro, no dependemos de la categoría de IA.
+    if (textCashSignal && !textTransferSignal) return 'gasto_extra';
+    if (textTransferSignal || /transfer/.test(cat)) return 'transferencia';
+    if (textCashSignal || /\b(cajero|atm|retiro|extraccion|efectivo)\b/.test(cat)) return 'gasto_extra';
+    return 'por_revisar';
+  }
+
+  function enrichBankTransaction(transaction) {
+    const t = { ...transaction };
+    t.source = 'davivienda';
+    t.classification = t.classification || classifyBankTransaction(t.type, t.category, t.name);
+    t.recipient = t.recipient || (t.classification === 'transferencia' ? extractTransferRecipient(t.name) : '');
+    if (t.date && !t.cycleId) t.cycleId = getCycleIdForDate(t.date);
+    return t;
+  }
+
+  function matchingBankTransfer(payment, cycleId) {
+    const targetTokens = normalizeText(payment.name).split(' ').filter(token => token.length > 1);
+    return (state.bankTransactions || []).find(t => {
+      if (t.cycleId !== cycleId || t.type !== 'gasto' || t.classification !== 'transferencia') return false;
+      if (Math.abs(Number(t.amount) - Number(payment.amount)) > 0.01) return false;
+      const recipient = normalizeText(t.recipient || extractTransferRecipient(t.name));
+      return targetTokens.length > 0 && targetTokens.every(token => recipient.split(' ').includes(token));
+    }) || null;
+  }
+
+  function getPaymentStatus(payment, cycleId) {
+    if (matchingBankTransfer(payment, cycleId)) return 'pagado';
+    return (state.paymentStates[cycleId] || {})[payment.id] || 'pendiente';
   }
 
   function renderPayments(cycleId) {
     const container = document.getElementById('paymentsList');
     const cycleStatus = state.paymentStates[cycleId] || {};
     container.innerHTML = DEFAULT_PAYMENTS.map(p => {
-      const status = cycleStatus[p.id] || 'pendiente';
+      const matched = matchingBankTransfer(p, cycleId);
+      const status = matched ? 'pagado' : (cycleStatus[p.id] || 'pendiente');
       const isPaid = status === 'pagado';
       const badgeClass = isPaid ? 'sub-badge' : (status === 'programado' ? 'pill-info' : '');
-      const statusLabel = isPaid ? '✓ Liquidado' : (status === 'programado' ? 'Programado' : 'Pendiente');
+      const control = matched
+        ? `<span class="pill-info payment-auto-status" title="Coincidencia automática por beneficiario, monto y catorcena">✓ Detectado en Davivienda</span>`
+        : `<select data-pay-id="${p.id}" aria-label="Estado de pago ${sanitize(p.name)}" style="font-size:0.8rem; min-height:36px; margin-top:4px;">
+            <option value="pendiente" ${status === 'pendiente' ? 'selected' : ''}>Marcar pendiente</option>
+            <option value="programado" ${status === 'programado' ? 'selected' : ''}>Programado en Davivienda</option>
+            <option value="pagado" ${status === 'pagado' ? 'selected' : ''}>Pagado / verificado</option>
+          </select>`;
       return `
         <div class="pay-item ${isPaid ? 'is-paid' : ''}">
           <div class="pay-item-top">
             <div><div class="pay-name">${sanitize(p.name)}</div><small style="color:var(--text-muted);">${sanitize(p.category)}</small></div>
-            <div><span class="money" style="font-weight:800; display:block; text-align:right;">${moneyFormat(p.amount)}</span><span class="${badgeClass}" style="font-size:0.68rem;">${statusLabel}</span></div>
+            <div><span class="money" style="font-weight:800; display:block; text-align:right;">${moneyFormat(p.amount)}</span><span class="${badgeClass}" style="font-size:0.68rem;">${matched ? 'Liquidado automáticamente' : (isPaid ? '✓ Liquidado' : (status === 'programado' ? 'Programado' : 'Pendiente'))}</span></div>
           </div>
-          <select data-pay-id="${p.id}" aria-label="Estado de pago ${sanitize(p.name)}" style="font-size:0.8rem; min-height:36px; margin-top:4px;">
-            <option value="pendiente" ${status === 'pendiente' ? 'selected' : ''}>Marcar Pendiente</option>
-            <option value="programado" ${status === 'programado' ? 'selected' : ''}>Programado en Davivienda</option>
-            <option value="pagado" ${status === 'pagado' ? 'selected' : ''}>Pagado / Verificado</option>
-          </select>
+          ${control}
         </div>`;
     }).join('');
 
@@ -164,8 +229,7 @@
         const pId = select.dataset.payId;
         if (!state.paymentStates[cycleId]) state.paymentStates[cycleId] = {};
         state.paymentStates[cycleId][pId] = e.target.value;
-        const p = DEFAULT_PAYMENTS.find(x => x.id === pId);
-        state.transactions.push({ id: String(Date.now()), type: 'estado', date: getTodayString(), name: p.name, amount: p.amount, cycleId, status: e.target.value });
+        // El estado del plan se guarda aparte; no se crea una transacción falsa en el historial.
         saveData();
       });
     });
@@ -181,7 +245,8 @@
 
   function renderHistory() {
     let list = getAllTransactions();
-    if (activeFilter !== 'todos') list = list.filter(t => t.type === activeFilter);
+    if (['ingreso', 'gasto', 'estado'].includes(activeFilter)) list = list.filter(t => t.type === activeFilter);
+    else if (['transferencia', 'gasto_extra', 'por_revisar'].includes(activeFilter)) list = list.filter(t => t.source === 'davivienda' && t.classification === activeFilter);
     if (searchQuery.trim() !== '') {
       const q = normalizeText(searchQuery);
       list = list.filter(t => normalizeText([t.name, t.note, t.category, t.confirmation, t.bankType].filter(Boolean).join(' ')).includes(q));
@@ -197,8 +262,16 @@
       const title = t.name || (isInc ? 'Ingreso' : 'Movimiento');
       const dateLabel = t.displayDate || t.date || '';
       let detail = '';
+      const preTracking = t.source === 'davivienda' && t.date < (sheetsConfig.analyticsStartDate || getTodayString());
       if (t.source === 'davivienda') {
-        detail = `Davivienda${t.category ? ' · ' + t.category : ''}${t.confirmation ? ' · Conf. ' + t.confirmation : ''}`;
+        const classLabels = { transferencia: 'Transferencia', gasto_extra: 'Retiro de cajero · gasto extra', por_revisar: 'Por revisar', abono: 'Abono' };
+        const pieces = ['Davivienda', classLabels[t.classification] || t.category || 'Movimiento bancario'];
+        if (t.category && normalizeText(t.category) !== normalizeText(pieces[1])) pieces.push(t.category);
+        if (preTracking) pieces.push('Histórico · no suma a los totales');
+        if (t.confirmation) pieces.push('Conf. ' + t.confirmation);
+        detail = pieces.join(' · ');
+      } else if (t.type === 'ingreso' || t.type === 'gasto') {
+        detail = [t.note, 'Registro local anterior · no suma a los totales automáticos'].filter(Boolean).join(' · ');
       } else if (t.note) detail = t.note;
       const deleteButton = t.source === 'davivienda' ? '<span class="pill-info" style="font-size:0.65rem; white-space:nowrap;">Banco</span>' : `<button class="btn btn-secondary delete-btn" data-del="${sanitize(t.id)}" aria-label="Eliminar ${sanitize(title)}" style="min-height:28px; width:28px; padding:0; border-radius:8px;">✕</button>`;
       return `
@@ -230,26 +303,35 @@
     document.getElementById('cycleLabel').textContent = cycle.label;
     document.getElementById('cycleDates').textContent = cycle.rangeText;
 
-    const cycleTx = getAllTransactions().filter(t => t.cycleId === cycle.cycleId);
+    const trackingStart = sheetsConfig.analyticsStartDate || getTodayString();
+    // El historial conserva todo el pasado. Los indicadores solo cuentan los movimientos desde el inicio del seguimiento.
+    const cycleTx = (state.bankTransactions || []).filter(t => t.cycleId === cycle.cycleId && t.date >= trackingStart);
     const income = cycleTx.filter(t => t.type === 'ingreso').reduce((s, t) => s + Number(t.amount || 0), 0);
-    const extras = cycleTx.filter(t => t.type === 'gasto').reduce((s, t) => s + Number(t.amount || 0), 0);
+    const bankDebits = cycleTx.filter(t => t.type === 'gasto');
+    const bankOutflow = bankDebits.reduce((s, t) => s + Number(t.amount || 0), 0);
+    const extras = bankDebits.filter(t => t.classification === 'gasto_extra').reduce((s, t) => s + Number(t.amount || 0), 0);
+    const transfers = bankDebits.filter(t => t.classification === 'transferencia').reduce((s, t) => s + Number(t.amount || 0), 0);
+    const review = bankDebits.filter(t => t.classification === 'por_revisar').reduce((s, t) => s + Number(t.amount || 0), 0);
     const cycleStatus = state.paymentStates[cycle.cycleId] || {};
-    // Si una transferencia fija ya aparece en el extracto, no se resta otra vez del saldo estimado.
-    const paid = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] === 'pagado' && !hasMatchingBankCharge(p, cycle.cycleId)).reduce((s, p) => s + Number(p.amount), 0);
-    const reserved = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] !== 'pagado' && !hasMatchingBankCharge(p, cycle.cycleId)).reduce((s, p) => s + Number(p.amount), 0);
+    // Los pagos que ya coinciden con una transferencia real no se reservan ni se descuentan otra vez.
+    const paid = DEFAULT_PAYMENTS.filter(p => cycleStatus[p.id] === 'pagado' && !matchingBankTransfer(p, cycle.cycleId)).reduce((s, p) => s + Number(p.amount), 0);
+    const reserved = DEFAULT_PAYMENTS.filter(p => getPaymentStatus(p, cycle.cycleId) !== 'pagado').reduce((s, p) => s + Number(p.amount), 0);
     const totalPlanned = DEFAULT_PAYMENTS.reduce((s, p) => s + Number(p.amount), 0);
-    const balance = income - paid - extras - reserved;
+    const balance = income - bankOutflow - paid - reserved;
 
     document.getElementById('balance').textContent = moneyFormat(balance);
     document.getElementById('incomeTotal').textContent = moneyFormat(income);
-    document.getElementById('plannedTotal').textContent = moneyFormat(totalPlanned);
+    document.getElementById('transferTotal').textContent = moneyFormat(transfers);
     document.getElementById('extraTotal').textContent = moneyFormat(extras);
+    document.getElementById('reviewTotal').textContent = moneyFormat(review);
+    document.getElementById('plannedTotal').textContent = moneyFormat(totalPlanned);
     document.getElementById('reservedTotal').textContent = moneyFormat(reserved);
-    const spent = paid + extras + reserved;
+    const spent = bankOutflow + paid + reserved;
     const pct = income > 0 ? Math.min(100, Math.round((spent / income) * 100)) : 0;
     const bar = document.getElementById('healthBar');
     bar.style.width = `${pct}%`;
     bar.style.backgroundColor = pct > 90 ? 'var(--red)' : (pct > 70 ? 'var(--orange)' : 'var(--green)');
+    updateTrackingStartLabels();
     renderPayments(cycle.cycleId);
     renderHistory();
   }
@@ -290,8 +372,16 @@
     if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
     let s = String(value ?? '').trim().replace(/[^\d,.-]/g, '');
     if (!s) return NaN;
-    if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');
-    else if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+    const lastComma = s.lastIndexOf(',');
+    const lastDot = s.lastIndexOf('.');
+    if (lastComma >= 0 && lastDot >= 0) {
+      // El separador que aparece último se interpreta como decimal (1,234.56 o 1.234,56).
+      if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');
+      else s = s.replace(/,/g, '');
+    } else if (lastComma >= 0) {
+      const decimals = s.length - lastComma - 1;
+      s = decimals > 0 && decimals <= 2 ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    }
     const amount = Number(s);
     return Number.isFinite(amount) ? amount : NaN;
   }
@@ -333,12 +423,15 @@
       if (!gmailMessageId || !date || !type || !concept || !Number.isFinite(amount) || amount < 0) return;
       const category = String(get('categoria') ?? '').trim();
       const confirmation = String(get('confirmacion') ?? '').trim();
-      deduped.set(gmailMessageId, {
+      const classification = classifyBankTransaction(type, category, concept);
+      deduped.set(gmailMessageId, enrichBankTransaction({
         id: `bank:${gmailMessageId}`,
         source: 'davivienda',
         gmailMessageId,
         bankType: rawType,
         type,
+        classification,
+        recipient: classification === 'transferencia' ? extractTransferRecipient(concept) : '',
         date: date.dateISO,
         displayDate: date.displayDate,
         sortAt: date.timestamp,
@@ -348,7 +441,7 @@
         category,
         confirmation,
         note: category
-      });
+      }));
     });
     return Array.from(deduped.values()).sort((a, b) => b.sortAt - a.sortAt);
   }
@@ -376,9 +469,11 @@
       }
       const bankTransactions = rowsToBankTransactions(data.values || []);
       state.bankTransactions = bankTransactions;
+      if (!sheetsConfig.analyticsStartDate) sheetsConfig.analyticsStartDate = getTodayString();
       sheetsConfig.lastSyncAt = new Date().toISOString();
       localStorage.setItem(SHEETS_CONFIG_KEY, JSON.stringify(sheetsConfig));
       saveData();
+      updateTrackingStartLabels();
       document.getElementById('bankSyncLastUpdated').textContent = `Última sincronización: ${new Date(sheetsConfig.lastSyncAt).toLocaleString('es-SV')}`;
       setSyncStatus(`Sincronización correcta: ${bankTransactions.length} movimiento(s) de Davivienda cargado(s). Los registros se deduplican por ID de Gmail.`, 'success');
     } catch (err) {
@@ -445,8 +540,6 @@
   }
 
   // Eventos e inicialización
-  document.getElementById('incomeDate').value = getTodayString();
-  document.getElementById('expenseDate').value = getTodayString();
   document.getElementById('prevCycleBtn').addEventListener('click', () => { state.cycleOffset--; saveData(); });
   document.getElementById('nextCycleBtn').addEventListener('click', () => { state.cycleOffset++; saveData(); });
 
@@ -460,28 +553,11 @@
     });
   });
 
-  document.getElementById('incomeForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const amount = Number(document.getElementById('incomeAmount').value);
-    if (!(amount > 0)) return;
-    const cycle = getCycleDetails(state.cycleOffset);
-    state.transactions.push({ id: String(Date.now()), type: 'ingreso', date: document.getElementById('incomeDate').value, amount, cycleId: cycle.cycleId, note: document.getElementById('incomeNote').value.trim() });
-    document.getElementById('incomeAmount').value = '';
-    document.getElementById('incomeNote').value = '';
-    saveData();
-  });
-
-  document.getElementById('expenseForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const amount = Number(document.getElementById('expenseAmount').value);
-    const name = document.getElementById('expenseName').value.trim();
-    const cat = document.getElementById('expenseCategory').value;
-    if (!(amount > 0) || !name) return;
-    const cycle = getCycleDetails(state.cycleOffset);
-    state.transactions.push({ id: String(Date.now()), type: 'gasto', date: document.getElementById('expenseDate').value, name: `${cat} · ${name}`, amount, cycleId: cycle.cycleId });
-    document.getElementById('expenseAmount').value = '';
-    document.getElementById('expenseName').value = '';
-    saveData();
+  document.getElementById('goToSettingsBtn').addEventListener('click', () => {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(b => b.classList.toggle('active', b.dataset.target === 'view-settings'));
+    document.getElementById('view-settings').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   document.querySelectorAll('#filterTabs .filter-pill').forEach(btn => {
@@ -516,7 +592,7 @@
         cycleOffset: Number.isFinite(Number(obj.state.cycleOffset)) ? Number(obj.state.cycleOffset) : 0,
         paymentStates: obj.state.paymentStates || {},
         transactions: obj.state.transactions,
-        bankTransactions: Array.isArray(obj.state.bankTransactions) ? obj.state.bankTransactions : []
+        bankTransactions: Array.isArray(obj.state.bankTransactions) ? obj.state.bankTransactions.map(enrichBankTransaction) : []
       };
       saveData();
       updateSyncStatusFromCache();
